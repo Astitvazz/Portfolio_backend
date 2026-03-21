@@ -1,15 +1,28 @@
 import express from "express";
 import Contact from "../models/Contact.js";
 import { sendEmail, sendAutoReply } from "../utils/sendEmail.js";
+import { contactLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
-router.post("/", async (req, res) => {
+// Apply rate limiter to the contact route
+router.post("/", contactLimiter, async (req, res) => {
   try {
     const { name, email, subject, message } = req.body;
 
     if (!name || !email || !subject || !message) {
       return res.status(400).json({ error: "All fields are required" });
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+
+    // Prevent very long messages (potential abuse)
+    if (message.length > 5000) {
+      return res.status(400).json({ error: "Message is too long (max 5000 characters)" });
     }
 
     const contact = await Contact.create({ name, email, subject, message });
