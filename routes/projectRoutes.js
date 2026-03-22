@@ -1,6 +1,7 @@
 import express from "express";
 import Project from "../models/Project.js";
-import { upload, cloudinary } from "../config/cloudinary.js";
+import { upload, uploadMedia, cloudinary } from "../config/cloudinary.js";
+
 import adminAuth from "../middleware/adminAuth.js";
 
 const router = express.Router();
@@ -121,7 +122,7 @@ router.get("/:slug", async (req, res) => {
  * ADD MEDIA TO PROJECT (for featured projects)
  * POST /api/projects/:slug/media
  */
-router.post("/:slug/media",adminAuth, upload.array("media", 10), async (req, res) => {
+router.post("/:slug/media", adminAuth, uploadMedia.array("media", 10), async (req, res) => {
   try {
     const project = await Project.findOne({ slug: req.params.slug });
     if (!project) {
