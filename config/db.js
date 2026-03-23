@@ -1,14 +1,14 @@
 import mongoose from "mongoose";
-import dotenv from 'dotenv'
-if (process.env.NODE_ENV !== 'production') dotenv.config()
+import { requireEnv } from "./env.js";
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    const mongoUri = requireEnv("MONGO_URI");
+    await mongoose.connect(mongoUri);
     console.log("MongoDB connected");
   } catch (error) {
     console.error(error);
-    process.exit(1);
+    throw error;
   }
 };
 

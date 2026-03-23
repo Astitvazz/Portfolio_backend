@@ -1,3 +1,4 @@
+import "./config/env.js";
 import express from "express";
 import cors from "cors";
 import connectDB from "./config/db.js";
@@ -8,8 +9,15 @@ import adminRoutes from "./routes/adminRoutes.js";
 
 const app = express();
 
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://162.0.0.1:3000",
+  process.env.CLIENT_URL,
+].filter(Boolean);
+
 const corsOptions = {
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://162.0.0.1:3000'],
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
 };
@@ -17,8 +25,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-connectDB();
 
 app.get("/", (req, res) => {
   res.json({ message: "Portfolio Backend Running", status: "OK" });
@@ -40,8 +46,19 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await connectDB();
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error.message);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 export default app;
