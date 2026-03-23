@@ -14,6 +14,7 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "http://162.0.0.1:3000",
+  "https://astitva-sharma.vercel.app/",
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
