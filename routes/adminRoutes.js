@@ -2,7 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import dotenv from 'dotenv'
-dotenv.config()
+if (process.env.NODE_ENV !== 'production') dotenv.config()
 
 const router = express.Router();
 

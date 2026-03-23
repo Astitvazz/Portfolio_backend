@@ -1,13 +1,10 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
-import adminRoutes from "./routes/adminRoutes.js"; // 👈 add this
-
-dotenv.config();
+import adminRoutes from "./routes/adminRoutes.js";
 
 const app = express();
 
@@ -30,7 +27,7 @@ app.get("/", (req, res) => {
 app.use("/api/contact", contactRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/projects", projectRoutes);
-app.use("/api/admin", adminRoutes); // 👈 add this
+app.use("/api/admin", adminRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: "Route not found" });
