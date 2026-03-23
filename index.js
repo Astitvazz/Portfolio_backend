@@ -6,6 +6,7 @@ import contactRoutes from "./routes/contactRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import { logEnvDiagnostics } from "./config/env.js";
 
 const app = express();
 
@@ -48,6 +49,20 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
+    logEnvDiagnostics([
+      "NODE_ENV",
+      "PORT",
+      "MONGO_URI",
+      "JWT_SECRET",
+      "ADMIN_EMAIL",
+      "ADMIN_PASSWORD_HASH",
+      "EMAIL_USER",
+      "EMAIL_PASS",
+      "CLOUDINARY_CLOUD_NAME",
+      "CLOUDINARY_API_KEY",
+      "CLOUDINARY_API_SECRET",
+    ]);
+
     await connectDB();
 
     app.listen(PORT, () => {

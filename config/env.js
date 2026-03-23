@@ -21,3 +21,12 @@ export const requireEnv = (name) => {
 
   return value;
 };
+
+export const logEnvDiagnostics = (names) => {
+  const diagnostics = names.reduce((result, name) => {
+    result[name] = Boolean(process.env[name]);
+    return result;
+  }, {});
+
+  console.log("Environment variable presence:", diagnostics);
+};
