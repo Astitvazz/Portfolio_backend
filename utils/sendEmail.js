@@ -1,23 +1,34 @@
 import nodemailer from "nodemailer";
+import { requireEnv } from "../config/env.js";
 
-// Create transporter (reusable)
+const getEmailConfig = () => ({
+  user: requireEnv("EMAIL_USER"),
+  pass: requireEnv("EMAIL_PASS"),
+});
+
+// Explicit Gmail SMTP settings are more reliable in production than service aliases.
 const createTransporter = () => {
+  const { user, pass } = getEmailConfig();
+
   return nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+      user,
+      pass,
     },
   });
 };
 
 // Send notification email to yourself
 const sendEmail = async ({ name, email, subject, message }) => {
+  const { user } = getEmailConfig();
   const transporter = createTransporter();
 
   const mailOptions = {
-    from: `"Portfolio Contact" <${process.env.EMAIL_USER}>`,
-    to: process.env.EMAIL_USER, // you receive mail
+    from: `"Portfolio Contact" <${user}>`,
+    to: user,
     replyTo: email, // allows you to reply directly to the sender
     subject: `New Contact Message: ${subject}`,
     html: `
@@ -46,10 +57,11 @@ const sendEmail = async ({ name, email, subject, message }) => {
 
 // Send auto-reply to the user
 const sendAutoReply = async ({ name, email, subject }) => {
+  const { user } = getEmailConfig();
   const transporter = createTransporter();
 
   const mailOptions = {
-    from: `"Astitva" <${process.env.EMAIL_USER}>`,
+    from: `"Astitva" <${user}>`,
     to: email, // send to the person who contacted you
     subject: `Re: ${subject}`,
     html: `
@@ -96,4 +108,12 @@ const sendAutoReply = async ({ name, email, subject }) => {
   await transporter.sendMail(mailOptions);
 };
 
-export { sendEmail, sendAutoReply };
+const formatMailError = (error) => ({
+  message: error.message,
+  code: error.code,
+  response: error.response,
+  responseCode: error.responseCode,
+  command: error.command,
+});
+
+export { createTransporter, sendEmail, sendAutoReply, formatMailError };

@@ -1,6 +1,6 @@
 import express from "express";
 import Contact from "../models/Contact.js";
-import { sendEmail, sendAutoReply } from "../utils/sendEmail.js";
+import { sendEmail, sendAutoReply, formatMailError } from "../utils/sendEmail.js";
 import { contactLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
@@ -25,21 +25,26 @@ router.post("/", contactLimiter, async (req, res) => {
       return res.status(400).json({ error: "Message is too long (max 5000 characters)" });
     }
 
-    const contact = await Contact.create({ name, email, subject, message });
+    await Contact.create({ name, email, subject, message });
 
-    // Send notification email to yourself
     await sendEmail({ name, email, subject, message });
 
-    // Send auto-reply to the user
-    await sendAutoReply({ name, email, subject });
+    try {
+      await sendAutoReply({ name, email, subject });
+    } catch (autoReplyError) {
+      console.error("Auto-reply email failed:", formatMailError(autoReplyError));
+    }
 
     res.status(201).json({
       success: true,
       message: "Message sent successfully",
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Email failed to send" });
+    console.error("Contact form submission failed:", formatMailError(error));
+    res.status(500).json({
+      error: "Email failed to send",
+      details: error.code || error.message,
+    });
   }
 });
 
