@@ -10,13 +10,6 @@ const router = express.Router();
  */
 router.post("/",adminAuth, upload.single("image"), async (req, res) => {
   try {
-    // Check if image was uploaded
-    
-    console.log('=== Blog POST hit ===')
-    console.log('File:', req.file)
-    console.log('Body keys:', Object.keys(req.body))
-    console.log('Auth header:', req.headers.authorization)
-  
     if (!req.file) {
       return res.status(400).json({ message: "Image is required" });
     }
