@@ -1,35 +1,73 @@
-import nodemailer from "nodemailer";
 import { requireEnv } from "../config/env.js";
 
 const getEmailConfig = () => ({
-  user: requireEnv("EMAIL_USER"),
-  pass: requireEnv("EMAIL_PASS"),
+  apiKey: requireEnv("BREVO_API_KEY"),
+  from: requireEnv("BREVO_FROM_EMAIL"),
+  ownerEmail: process.env.CONTACT_TO_EMAIL || requireEnv("ADMIN_EMAIL"),
 });
 
-// Explicit Gmail SMTP settings are more reliable in production than service aliases.
-const createTransporter = () => {
-  const { user, pass } = getEmailConfig();
+const sendWithBrevo = async ({ to, subject, html, replyTo }) => {
+  const { apiKey, from } = getEmailConfig();
 
-  return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: {
-      user,
-      pass,
+  const payload = {
+    sender: {
+      email: from,
+      name: "Astitva",
     },
-  });
+    to: [{ email: to }],
+    subject,
+    htmlContent: html,
+  };
+
+  if (replyTo) {
+    payload.replyTo = {
+      email: replyTo,
+    };
+  }
+
+  try {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        "api-key": apiKey,
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000),
+    });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      const error = new Error(result.message || "Brevo email send failed");
+      error.code = `BREVO_${response.status}`;
+      error.response = result;
+      error.responseCode = response.status;
+      throw error;
+    }
+
+    return result;
+  } catch (error) {
+    const wrappedError = new Error("Brevo request failed");
+    wrappedError.code = error.code || error.cause?.code || "BREVO_REQUEST_FAILED";
+    wrappedError.response = {
+      provider: "brevo",
+      originalMessage: error.message,
+      causeCode: error.cause?.code,
+      causeName: error.cause?.name,
+    };
+    wrappedError.responseCode = error.responseCode;
+    throw wrappedError;
+  }
 };
 
-// Send notification email to yourself
 const sendEmail = async ({ name, email, subject, message }) => {
-  const { user } = getEmailConfig();
-  const transporter = createTransporter();
+  const { ownerEmail } = getEmailConfig();
 
-  const mailOptions = {
-    from: `"Portfolio Contact" <${user}>`,
-    to: user,
-    replyTo: email, // allows you to reply directly to the sender
+  return sendWithBrevo({
+    to: ownerEmail,
+    replyTo: email,
     subject: `New Contact Message: ${subject}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -50,19 +88,12 @@ const sendEmail = async ({ name, email, subject, message }) => {
         </p>
       </div>
     `,
-  };
-
-  await transporter.sendMail(mailOptions);
+  });
 };
 
-// Send auto-reply to the user
 const sendAutoReply = async ({ name, email, subject }) => {
-  const { user } = getEmailConfig();
-  const transporter = createTransporter();
-
-  const mailOptions = {
-    from: `"Astitva" <${user}>`,
-    to: email, // send to the person who contacted you
+  return sendWithBrevo({
+    to: email,
     subject: `Re: ${subject}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -71,7 +102,7 @@ const sendAutoReply = async ({ name, email, subject }) => {
         <p style="color: #555; line-height: 1.6;">Hi ${name},</p>
         
         <p style="color: #555; line-height: 1.6;">
-          Thank you for contacting me! I've received your message regarding "<strong>${subject}</strong>" 
+          Thank you for contacting me! I've received your message regarding "<strong>${subject}</strong>"
           and I appreciate you taking the time to reach out.
         </p>
         
@@ -103,9 +134,7 @@ const sendAutoReply = async ({ name, email, subject }) => {
         </p>
       </div>
     `,
-  };
-
-  await transporter.sendMail(mailOptions);
+  });
 };
 
 const formatMailError = (error) => ({
@@ -116,4 +145,4 @@ const formatMailError = (error) => ({
   command: error.command,
 });
 
-export { createTransporter, sendEmail, sendAutoReply, formatMailError };
+export { sendEmail, sendAutoReply, formatMailError };
